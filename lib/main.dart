@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -190,6 +192,9 @@ class GroupEventListPage extends StatelessWidget {
           } 
 
           return ListTile(
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context)=> MemberEventListPage(memberId: member.id)));
+            },
             leading: CircleAvatar(
               radius: 24,
               child: Text(member.code),
@@ -210,6 +215,88 @@ class GroupEventListPage extends StatelessWidget {
           );
         },
         itemCount: currentGroup.members.length,
+      )
+    );
+  }
+}
+
+
+
+class MemberEventListPage extends StatelessWidget {
+  int memberId;
+
+   MemberEventListPage({super.key, required this.memberId});
+
+    // Initialize the data
+
+    List<Group> groups = [
+      Group(code: 'BO', name: 'Bombaywalas', id: 1, members: [
+        Member(name: 'Taha Murtaza', id: 1, code: 'TA', events: [
+          Event(date: DateTime(2008, 11, 14,), type: "Birthday", id: 1),
+           Event(date: DateTime(2024, 10, 28,), type: "Japan Trip", id: 2),
+        ]),
+        Member(name: 'Abbas Hussain', id: 2, code: 'AB', events: [
+          Event(date: DateTime(2023, 11, 12,), type: "Birthday", id: 3),
+        ]),
+         Member(name: 'Hussain Murtaza', id: 3, code: 'HU', events: [
+          Event(date: DateTime(1996, 09, 24,), type: "Birthday", id: 4),
+        ]),
+      ]),
+        Group(code: 'MA', name: 'Mafias', id: 2, members: [
+        Member(name: 'Taha Murtaza', id: 1, code: 'TA', events: [
+          Event(date: DateTime(2008, 11, 14,), type: "Birthday", id: 1),
+           Event(date: DateTime(2024, 10, 28,), type: "Japan Trip", id: 2),
+        ]),
+            Member(name: 'Jawaharlal Nehru', id: 4, code: 'TA', events: [
+          Event(date: DateTime(1950, 11, 14,), type: "Birthday", id: 1),
+        ]),
+         Member(name: 'Hussain Murtaza', id: 3, code: 'HU', events: [
+          Event(date: DateTime(1996, 09, 24,), type: "Birthday", id: 4),
+        ]),
+      ]),
+        Group(code: 'OL', name: 'Oldly Weds', id: 3, members: [
+         Member(name: 'Hussain Murtaza', id: 3, code: 'HU', events: [
+          Event(date: DateTime(1996, 09, 24,), type: "Birthday", id: 4),
+        ]),
+      ])
+    ];
+
+
+  @override
+  Widget build(BuildContext context) {
+    Member currentMember = getCurrentMember(groups, memberId);
+    List<Event> events = getEventsByMember(groups, memberId);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(currentMember.name),  // AppBar with title
+      ),
+      body: ListView.builder(
+        itemBuilder: (context, index) {
+          
+          Event event = events[index];
+
+          return ListTile(
+            leading: CircleAvatar(
+              radius: 24,
+              child: Text(event.type.substring(0,2).toUpperCase()),
+            ),
+              title: Text(event.type),
+              subtitle: Text(DateFormat('d MMMM yyyy').format(event.date)),
+              trailing: SizedBox(
+                width: 48,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text('${event.daysToNextOccurrence()}', style: TextStyle(fontSize: 16, color: Theme.of(context).primaryColor),),
+                    Text('days')
+                  ],
+                ),
+              )
+          );
+        },
+        itemCount: events.length,
       )
     );
   }
@@ -243,6 +330,22 @@ class Event {
   String type;
 
   Event({required this.id, required this.type, required this.date});
+
+
+  int daysToNextOccurrence() {
+    DateTime now = DateTime.now();
+
+    DateTime today = DateTime(now.year, now.month, now.day);
+    DateTime nextOccurrence = DateTime(now.year, date.month, date.day);
+
+    // If the event date this year has already passed, set it to the next year
+    if (nextOccurrence.isBefore(today)) {
+      nextOccurrence = DateTime(today.year + 1, date.month, date.day);
+    }
+
+    // If the event is today, return 0
+    return nextOccurrence.difference(today).inDays;
+  }
 } 
 
 
@@ -345,4 +448,34 @@ List<Event> findNextEventForMember(Group group, Member member) {
     }
 
     return nextMemberEvents;
+}
+
+
+Member getCurrentMember(List<Group> groups, int memberId) {
+  late Member currentMember;
+  for (Group group in groups) {
+    for (Member member in group.members) {
+      if (member.id == memberId) {
+         currentMember = member;
+         break;
+      }
+    }
+  }
+  return currentMember;
+}
+
+List<Event> getEventsByMember(List<Group> groups, int memberId) {
+   Map<int, Event> eventMap = {};
+  for (Group group in groups) {
+    for (Member member in group.members) {
+      if (member.id == memberId) {
+        for (Event event in member.events) {
+          if (!eventMap.containsKey(event.id)) {
+            eventMap[event.id] = event;
+          }
+        }
+      }
+    }
+  }
+  return eventMap.values.toList();
 }
